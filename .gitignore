@@ -1,0 +1,28 @@
+# macOS
+.DS_Store
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.venv/
+env/
+venv/
+*.egg-info/
+
+# Flask
+instance/
+*.db
+*.sqlite3
+*.sqlite
+*.log
+.env
+.flaskenv
+
+# Node / Tailwind
+node_modules/
+.pnpm-store/
+dist/
+build/
+.cache/
