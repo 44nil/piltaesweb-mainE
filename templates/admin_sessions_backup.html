@@ -1,0 +1,411 @@
+{% extends 'base.html' %}
+{% block title %}Seans Yönetimi · Pilates Studio{% endblock %}
+
+{% block content %}
+<div class="grid md:grid-cols-2 gap-6">
+
+  <!-- Yeni Seans Ekle -->
+  <div class="rounded-[22px] border border-white/55 bg-white/55 backdrop-blur-xl p-6 shadow-[0_20px_80px_-30px_rgba(0,0,0,.25)]">
+    <h2 class="font-semibold mb-4 text-lg">Yeni Seans Ekle</h2>
+    <form method="post" class="grid gap-3">
+      <label class="block">
+        <span class="mb-1 block text-sm text-stone-600">Tarih</span>
+        <input type="date" name="date"
+               class="w-full rounded-2xl bg-white/80 ring-1 ring-white/60 shadow-inner px-4 py-3 outline-none focus:ring-rose-300"
+               required>
+      </label>
+
+      <label class="block">
+        <span class="mb-1 block text-sm text-stone-600">Saat</span>
+        <input type="time" name="time"
+               class="w-full rounded-2xl bg-white/80 ring-1 ring-white/60 shadow-inner px-4 py-3 outline-none focus:ring-rose-300"
+               required>
+      </label>
+
+      <label class="block">
+        <span class="mb-1 block text-sm text-stone-600">Kapasite</span>
+        <input type="number" name="capacity" min="1" placeholder="Kapasite"
+               class="w-full rounded-2xl bg-white/80 ring-1 ring-white/60 shadow-inner px-4 py-3 outline-none focus:ring-rose-300"
+               required>
+      </label>
+
+      <label class="block">
+        <span class="mb-1 block text-sm text-stone-600">Notlar (opsiyonel)</span>
+        <input type="text" name="notes" placeholder="Örn. Reformer / Mat / Düzey"
+               class="w-full rounded-2xl bg-white/80 ring-1 ring-white/60 shadow-inner px-4 py-3 outline-none focus:ring-rose-300">
+      </label>
+
+      <!-- Sabit / Recurring + Rezerve Üyeler -->
+      <div class="mt-2 rounded-2xl bg-white/70 ring-1 ring-white/60 p-4">
+        <label class="flex items-center gap-3 cursor-pointer select-none">
+          <input type="checkbox" id="reserved_toggle" name="reserved_slot" value="1"
+                 class="h-5 w-5 rounded border-stone-300">
+          <div>
+            <div class="font-medium text-sm">Bu seansı sabit/recurring olarak rezerve et</div>
+            <div class="text-xs text-stone-500">Seçili üyeler için her hafta aynı gün/saat otomatik yer ayrılır.</div>
+          </div>
+        </label>
+
+        <div id="reserved_area" class="hidden mt-4 space-y-3">
+          <label class="block">
+            <span class="mb-1 block text-sm text-stone-600">Üye Seç (çoklu)</span>
+            <select name="reserved_member_ids[]" multiple
+                    class="w-full rounded-2xl bg-white/80 ring-1 ring-white/60 shadow-inner px-4 py-3 outline-none focus:ring-rose-300
+                           [&_option:checked]:bg-rose-100 [&_option:checked]:font-medium [&_option:checked]:text-rose-700">
+              {% if members is defined and members %}
+                {% for m in members %}
+                  <option value="{{ m.id }}">{{ m.full_name }} ({{ m.credits }} hak)</option>
+                {% endfor %}
+              {% else %}
+                <option disabled>Üye listesi bulunamadı (admin_members ekleyin)</option>
+              {% endif %}
+            </select>
+            <p class="text-[12px] text-stone-500 mt-1">Ctrl/⌘ ile çoklu seçim yapabilirsiniz.</p>
+          </label>
+
+          <label class="block">
+            <span class="mb-1 block text-sm text-stone-600">Tekrarlama Deseni</span>
+            <select name="repeat_pattern"
+                    class="w-full rounded-2xl bg-white/80 ring-1 ring-white/60 shadow-inner px-4 py-3 outline-none focus:ring-rose-300">
+              <option value="weekly" selected>Her Hafta (önerilen)</option>
+              <option value="biweekly">2 Haftada Bir</option>
+              <option value="monthly">Aylık</option>
+            </select>
+          </label>
+        </div>
+      </div>
+
+      <button class="mt-2 rounded-2xl bg-gradient-to-r from-rose-300 to-violet-300 px-4 py-3 shadow-lg hover:shadow-xl transition">
+        ➕ Ekle
+      </button>
+    </form>
+  </div>
+
+  <!-- Mevcut Seanslar -->
+  <div class="rounded-[22px] border border-white/55 bg-white/55 backdrop-blur-xl p-6 shadow-[0_20px_80px_-30px_rgba(0,0,0,.25)]">
+    <div class="flex items-center justify-between mb-4">
+      <h2 class="font-semibold text-lg">Mevcut Seanslar</h2>
+      <span class="text-xs text-stone-500">Toplam: {{ sessions|length }}</span>
+    </div>
+
+    <!-- Filtreler -->
+    <div class="flex flex-wrap gap-2 mb-4">
+      <button type="button" onclick="filterByDate('all')" 
+              class="py-1 px-3 text-xs rounded-full bg-white/80 ring-1 ring-stone-200 shadow-sm hover:bg-stone-100 transition">
+        Tümünü Göster
+      </button>
+      <button type="button" onclick="filterByDate('today')" 
+              class="py-1 px-3 text-xs rounded-full bg-rose-100 text-rose-700 ring-1 ring-rose-200 shadow-sm hover:bg-rose-200 transition">
+        Bugün
+      </button>
+      <button type="button" onclick="filterByDate('thisWeek')" 
+              class="py-1 px-3 text-xs rounded-full bg-amber-100 text-amber-700 ring-1 ring-amber-200 shadow-sm hover:bg-amber-200 transition">
+        Bu Hafta
+      </button>
+      <button type="button" onclick="filterByDate('nextWeek')" 
+              class="py-1 px-3 text-xs rounded-full bg-emerald-100 text-emerald-700 ring-1 ring-emerald-200 shadow-sm hover:bg-emerald-200 transition">
+        Gelecek Hafta
+      </button>
+    </div>
+
+    {% set planned = sessions | selectattr('completed', 'equalto', False) | list %}
+    {% set completed = sessions | selectattr('completed', 'equalto', True) | list %}
+    {% set recurring = sessions | selectattr('is_recurring', 'equalto', True) | list %}
+
+    <div class="space-y-8">
+      {% set categories = [
+        {'name': 'Planlandı', 'icon': '📅', 'color': 'yellow-700', 'bg': 'yellow-100', 'items': planned | selectattr('is_recurring', 'equalto', False) | list},
+        {'name': 'Haftalık Seri', 'icon': '🔄', 'color': 'blue-700', 'bg': 'blue-100', 'items': recurring | selectattr('completed', 'equalto', False) | list},
+        {'name': 'Tamamlandı', 'icon': '✓', 'color': 'green-700', 'bg': 'green-100', 'items': completed | list}
+      ] %}
+
+      <script>
+        // Kategoriyi açıp kapatma
+        function toggleCategory(cat) {
+          const el = document.getElementById('cat-' + cat);
+          if (el) {
+            if (el.classList.contains('hidden')) {
+              el.classList.remove('hidden');
+            } else {
+              el.classList.add('hidden');
+            }
+          }
+        }
+        
+        // "Daha fazla" bölümünü açıp kapatma
+        function toggleMoreItems(cat) {
+          const moreContent = document.getElementById('more-content-' + cat);
+          const moreBtn = document.getElementById('more-btn-' + cat);
+          
+          if (moreContent) {
+            if (moreContent.classList.contains('hidden')) {
+              moreContent.classList.remove('hidden');
+              if (moreBtn) moreBtn.textContent = 'Daha az göster';
+            } else {
+              moreContent.classList.add('hidden');
+              if (moreBtn) {
+                const count = moreContent.querySelectorAll('.session-item').length;
+                moreBtn.textContent = 'Daha fazla göster (' + count + ')';
+              }
+            }
+          }
+        }
+      </script>
+
+      {% for cat in categories %}
+      <div class="mb-6 category-section" data-category="{{ cat.name|lower }}">
+        <button type="button" onclick="toggleCategory('{{ loop.index0 }}')"
+          class="w-full text-left font-semibold text-base mb-2 px-4 py-3 rounded-xl bg-{{ cat.bg }} text-{{ cat.color }} shadow hover:bg-{{ cat.bg.replace('100','200') }} transition
+                 flex items-center justify-between">
+          <div class="flex items-center gap-2">
+            <span class="text-xl">{{ cat.icon }}</span>
+            <span>{{ cat.name }}</span>
+          </div>
+          <div class="text-sm text-{{ cat.color }} bg-white/50 px-3 py-1 rounded-lg">
+            {% if cat is mapping and cat.get('items') is defined and cat.get('items') is iterable %}
+              {{ cat.get('items')|length }} seans
+            {% else %}
+              0 seans
+            {% endif %}
+          </div>
+        </button>
+        
+        {% set items = cat.get('items') if cat is mapping and cat.get('items') is defined else [] %}
+        {% set items_length = items|length if items is defined and items is iterable else 0 %}
+        <div id="cat-{{ loop.index0 }}" class="space-y-3 transition-all">
+          {% set current_month = None %}
+          {% if items is defined and items is iterable %}
+            {% for s in items %}
+              {% if loop.index <= 3 %}
+              
+              {% if current_month != s.date.strftime('%Y-%m') %}
+                {% set current_month = s.date.strftime('%Y-%m') %}
+                <div class="date-divider flex items-center gap-2 mt-3 mb-2 first:mt-0">
+                  <span class="text-sm font-semibold bg-{{ cat.color }}/10 text-{{ cat.color }} px-3 py-1 rounded-full">
+                    {{ s.date.strftime('%B %Y')|capitalize }}
+                  </span>
+                  <div class="h-[1px] flex-grow bg-{{ cat.color }}/20"></div>
+                </div>
+              {% endif %}
+            
+            <div class="session-item rounded-2xl bg-white/80 ring-1 ring-{{ cat.bg }} shadow-inner p-4 flex items-start justify-between gap-4"
+                 data-date="{{ s.date.strftime('%Y-%m-%d') }}">
+              <div>
+                <div class="flex flex-wrap items-center gap-2">
+                  <div class="flex items-center gap-1">
+                    <span class="font-semibold rounded-md bg-{{ cat.bg }} text-{{ cat.color }} px-2 py-0.5">
+                      {{ s.date.strftime('%d.%m.%Y') }}
+                    </span>
+                    <span class="font-medium">{{ s.time.strftime('%H:%M') }}</span>
+                  </div>
+                  {% if cat.name == 'Planlandı' %}<span class="text-[11px] px-2 py-0.5 rounded-full bg-yellow-200 text-yellow-800">Planlandı</span>{% endif %}
+                  {% if cat.name == 'Haftalık Seri' %}<span class="text-[11px] px-2 py-0.5 rounded-full bg-blue-200 text-blue-800">Haftalık Seri</span>{% endif %}
+                  {% if cat.name == 'Tamamlandı' %}<span class="text-[11px] px-2 py-0.5 rounded-full bg-green-200 text-green-800">Tamamlandı</span>{% endif %}
+                  {% if s.is_recurring and cat.name == 'Tamamlandı' %}<span class="text-[11px] px-2 py-0.5 rounded-full bg-blue-200 text-blue-800">Haftalık Seri</span>{% endif %}
+                  {% if s.is_reserved is defined and s.is_reserved %}<span class="text-[11px] px-2 py-0.5 rounded-full bg-rose-200 text-rose-800">Rezerve</span>{% endif %}
+                  {% if s.notes %}<span class="text-[11px] px-2 py-0.5 rounded-full bg-violet-100 text-violet-700">{{ s.notes }}</span>{% endif %}
+                </div>
+                <div class="mt-1 text-xs text-stone-500"><span class="font-medium">Kapasite:</span> {{ s.capacity }} · <span class="font-medium">Kalan:</span> {{ s.spots_left }}</div>
+              </div>
+              <div class="flex items-center gap-2 shrink-0">
+                <a href="{{ url_for('admin_participants', session_id=s.id) }}" class="px-3 py-2 rounded-xl bg-white/80 ring-1 ring-white/60 shadow hover:bg-white transition text-sm">Katılımcılar</a>
+                <form method="post" action="{{ url_for('admin_delete_session', session_id=s.id) }}" onsubmit="return confirm('Seans silinsin mi? Bu işlem katılımcıları da etkileyecektir.')">
+                  <button class="px-3 py-2 rounded-xl bg-gradient-to-r from-pink-300 to-rose-400 text-stone-900 shadow hover:shadow-md transition text-sm">Sil</button>
+                </form>
+              </div>
+            </div>
+            {% endif %}
+          {% endfor %}
+          
+          {% if items is defined and items is iterable and items|length > 3 %}
+            <button type="button" id="more-btn-{{ loop.index0 }}" onclick="toggleMoreItems('{{ loop.index0 }}')"
+              class="w-full mt-2 rounded-xl bg-gray-100 text-gray-700 py-2 text-sm font-medium shadow hover:bg-gray-200 transition">
+              Daha fazla göster ({{ items|length - 3 }})
+            </button>
+            <div id="more-content-{{ loop.index0 }}" class="hidden transition-all duration-300 mt-3 space-y-3">
+              {% set more_current_month = None %}
+              {% if items is defined and items is iterable %}
+                {% for s in items %}
+                  {% if loop.index > 3 %}
+                  
+                  {% if more_current_month != s.date.strftime('%Y-%m') %}
+                    {% set more_current_month = s.date.strftime('%Y-%m') %}
+                    <div class="date-divider flex items-center gap-2 mt-3 mb-2 first:mt-0">
+                      <span class="text-sm font-semibold bg-{{ cat.color }}/10 text-{{ cat.color }} px-3 py-1 rounded-full">
+                        {{ s.date.strftime('%B %Y')|capitalize }}
+                      </span>
+                      <div class="h-[1px] flex-grow bg-{{ cat.color }}/20"></div>
+                    </div>
+                  {% endif %}
+                
+                <div class="session-item rounded-2xl bg-white/80 ring-1 ring-{{ cat.bg }} shadow-inner p-4 flex items-start justify-between gap-4"
+                     data-date="{{ s.date.strftime('%Y-%m-%d') }}">
+                  <div>
+                    <div class="flex flex-wrap items-center gap-2">
+                      <div class="flex items-center gap-1">
+                        <span class="font-semibold rounded-md bg-{{ cat.bg }} text-{{ cat.color }} px-2 py-0.5">
+                          {{ s.date.strftime('%d.%m.%Y') }}
+                        </span>
+                        <span class="font-medium">{{ s.time.strftime('%H:%M') }}</span>
+                      </div>
+                      {% if cat.name == 'Planlandı' %}<span class="text-[11px] px-2 py-0.5 rounded-full bg-yellow-200 text-yellow-800">Planlandı</span>{% endif %}
+                      {% if cat.name == 'Haftalık Seri' %}<span class="text-[11px] px-2 py-0.5 rounded-full bg-blue-200 text-blue-800">Haftalık Seri</span>{% endif %}
+                      {% if cat.name == 'Tamamlandı' %}<span class="text-[11px] px-2 py-0.5 rounded-full bg-green-200 text-green-800">Tamamlandı</span>{% endif %}
+                      {% if s.is_recurring and cat.name == 'Tamamlandı' %}<span class="text-[11px] px-2 py-0.5 rounded-full bg-blue-200 text-blue-800">Haftalık Seri</span>{% endif %}
+                      {% if s.is_reserved is defined and s.is_reserved %}<span class="text-[11px] px-2 py-0.5 rounded-full bg-rose-200 text-rose-800">Rezerve</span>{% endif %}
+                      {% if s.notes %}<span class="text-[11px] px-2 py-0.5 rounded-full bg-violet-100 text-violet-700">{{ s.notes }}</span>{% endif %}
+                    </div>
+                    <div class="mt-1 text-xs text-stone-500"><span class="font-medium">Kapasite:</span> {{ s.capacity }} · <span class="font-medium">Kalan:</span> {{ s.spots_left }}</div>
+                  </div>
+                  <div class="flex items-center gap-2 shrink-0">
+                    <a href="{{ url_for('admin_participants', session_id=s.id) }}" class="px-3 py-2 rounded-xl bg-white/80 ring-1 ring-white/60 shadow hover:bg-white transition text-sm">Katılımcılar</a>
+                    <form method="post" action="{{ url_for('admin_delete_session', session_id=s.id) }}" onsubmit="return confirm('Seans silinsin mi? Bu işlem katılımcıları da etkileyecektir.')">
+                      <button class="px-3 py-2 rounded-xl bg-gradient-to-r from-pink-300 to-rose-400 text-stone-900 shadow hover:shadow-md transition text-sm">Sil</button>
+                    </form>
+                  </div>
+                </div>
+                  {% endif %}
+                {% endfor %}
+              {% endif %}
+            </div>
+          {% endif %}
+          
+          {% if items is not defined or not items is iterable or items|length == 0 %}
+            <div class="text-sm text-stone-500">Henüz {{ cat.name|lower }} seans yok.</div>
+          {% endif %}
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+  </div>
+</div>
+
+<script>
+  function filterByDate(filter) {
+    // Tüm filtreleme butonlarının vurgulanmasını kaldır ve seçilen butonu vurgula
+    document.querySelectorAll('.flex.flex-wrap.gap-2.mb-4 button').forEach(btn => {
+      btn.classList.remove('ring-2', 'ring-offset-2');
+    });
+    event.target.classList.add('ring-2', 'ring-offset-2');
+    
+    // Tüm seans öğelerini seç
+    const allSessions = document.querySelectorAll('.session-item');
+    
+    // Bugünün tarihini al
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    
+    // Haftanın başlangıç ve bitiş tarihlerini hesapla
+    const thisWeekStart = new Date(today);
+    const dayOfWeek = today.getDay(); // 0 = Pazar, 1 = Pazartesi, ...
+    const daysSinceMonday = dayOfWeek === 0 ? 6 : dayOfWeek - 1;
+    thisWeekStart.setDate(today.getDate() - daysSinceMonday);
+    
+    const thisWeekEnd = new Date(thisWeekStart);
+    thisWeekEnd.setDate(thisWeekStart.getDate() + 6);
+    
+    const nextWeekStart = new Date(thisWeekEnd);
+    nextWeekStart.setDate(thisWeekEnd.getDate() + 1);
+    
+    const nextWeekEnd = new Date(nextWeekStart);
+    nextWeekEnd.setDate(nextWeekStart.getDate() + 6);
+    
+    // Tüm seans öğelerini filtrele
+    allSessions.forEach(session => {
+      const dateAttr = session.getAttribute('data-date');
+      if (!dateAttr) {
+        session.style.display = 'flex';
+        return;
+      }
+      
+      const sessionDate = new Date(dateAttr);
+      sessionDate.setHours(0, 0, 0, 0);
+      
+      if (filter === 'all') {
+        session.style.display = 'flex';
+      } 
+      else if (filter === 'today') {
+        session.style.display = (sessionDate.getTime() === today.getTime()) ? 'flex' : 'none';
+      } 
+      else if (filter === 'thisWeek') {
+        session.style.display = 
+          (sessionDate >= thisWeekStart && sessionDate <= thisWeekEnd) ? 'flex' : 'none';
+      } 
+      else if (filter === 'nextWeek') {
+        session.style.display = 
+          (sessionDate >= nextWeekStart && sessionDate <= nextWeekEnd) ? 'flex' : 'none';
+      }
+    });
+    
+    // Ay ayırıcılarını gizle/göster
+    document.querySelectorAll('.date-divider').forEach(divider => {
+      // Ayırıcıdan sonraki ilk görünür öğeyi bul
+      let nextElement = divider.nextElementSibling;
+      let hasVisibleSessions = false;
+      
+      while (nextElement && !nextElement.classList.contains('date-divider')) {
+        if (nextElement.classList.contains('session-item') && nextElement.style.display !== 'none') {
+          hasVisibleSessions = true;
+          break;
+        }
+        nextElement = nextElement.nextElementSibling;
+      }
+      
+      // Ayırıcıdan sonra görünür seans yoksa ayırıcıyı gizle
+      divider.style.display = hasVisibleSessions ? 'flex' : 'none';
+    });
+    
+    // Her kategori için, eğer görünür seans yoksa "Daha fazla göster" butonunu gizle
+    document.querySelectorAll('.category-section').forEach(section => {
+      const visibleSessions = Array.from(section.querySelectorAll('.session-item')).filter(
+        s => s.style.display !== 'none'
+      ).length;
+      
+      const moreBtn = section.querySelector('[id^="more-btn-"]');
+      if (moreBtn) {
+        moreBtn.style.display = visibleSessions > 3 ? 'block' : 'none';
+        
+        // Buton metnini güncelle
+        const catId = moreBtn.id.replace('more-btn-', '');
+        const moreContent = document.getElementById('more-content-' + catId);
+        if (moreContent) {
+          const visibleMoreSessions = Array.from(moreContent.querySelectorAll('.session-item')).filter(
+            s => s.style.display !== 'none'
+          ).length;
+          moreBtn.textContent = 'Daha fazla göster (' + visibleMoreSessions + ')';
+        }
+      }
+      
+      // Eğer kategoride hiç görünür seans yoksa kategoriyi gizle
+      const categoryHeader = section.querySelector('button[onclick^="toggleCategory"]');
+      const categoryContent = section.querySelector('[id^="cat-"]');
+      if (visibleSessions === 0) {
+        section.style.display = 'none';
+      } else {
+        section.style.display = 'block';
+      }
+    });
+  }
+
+  document.addEventListener('DOMContentLoaded', () => {
+    // "Sabit/Recurring" seçilince üye seçimi ve pattern alanını aç/kapat
+    const tog  = document.getElementById('reserved_toggle');
+    const area = document.getElementById('reserved_area');
+    if (tog && area) {
+      const sync = () => area.classList.toggle('hidden', !tog.checked);
+      tog.addEventListener('change', sync);
+      sync();
+    }
+    
+    // Her kategori için buton metinlerini doğru ayarla
+    document.querySelectorAll('[id^="more-btn-"]').forEach(btn => {
+      const catId = btn.id.replace('more-btn-', '');
+      const moreContent = document.getElementById('more-content-' + catId);
+      if (moreContent) {
+        const count = moreContent.querySelectorAll('.session-item').length;
+        btn.textContent = 'Daha fazla göster (' + count + ')';
+      }
+    });
+  });
+</script>
+{% endblock %}

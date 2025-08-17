@@ -1,0 +1,46 @@
+{% extends 'base.html' %}
+{% block title %}Ölçüm Ekle · Pilates Studio{% endblock %}
+{% block content %}
+<h2 class="font-semibold text-lg mb-4">Üye Ölçüm Ekle</h2>
+<form method="post" class="space-y-4 max-w-md">
+  <label class="block">
+    <span class="text-sm">Üye</span>
+    <select name="member_id" required class="w-full mt-1 p-2 border rounded">
+      {% for m in members %}
+        <option value="{{ m.id }}">{{ m.full_name }}</option>
+      {% endfor %}
+    </select>
+  </label>
+  <label class="block">
+    <span class="text-sm">Tarih</span>
+    <input type="date" name="date" required class="w-full mt-1 p-2 border rounded" value="{{ today }}">
+  </label>
+  <label class="block">
+    <span class="text-sm">Kilo (kg)</span>
+    <input type="number" step="0.1" name="weight" class="w-full mt-1 p-2 border rounded">
+  </label>
+  <label class="block">
+    <span class="text-sm">Bel (cm)</span>
+    <input type="number" step="0.1" name="waist" class="w-full mt-1 p-2 border rounded">
+  </label>
+  <label class="block">
+    <span class="text-sm">Kalça (cm)</span>
+    <input type="number" step="0.1" name="hip" class="w-full mt-1 p-2 border rounded">
+  </label>
+  <label class="block">
+    <span class="text-sm">Bacak (cm)</span>
+    <input type="number" step="0.1" name="thigh" class="w-full mt-1 p-2 border rounded">
+  </label>
+  <button type="submit" class="bg-emerald-500 text-white px-4 py-2 rounded">Kaydet</button>
+</form>
+{% if request.args.get('member_id') %}
+  <script>
+    document.addEventListener('DOMContentLoaded', function() {
+      var select = document.querySelector('select[name="member_id"]');
+      if (select) {
+        select.value = "{{ request.args.get('member_id') }}";
+      }
+    });
+  </script>
+{% endif %}
+{% endblock %}

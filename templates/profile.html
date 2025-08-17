@@ -1,0 +1,42 @@
+{% extends 'base.html' %}
+{% block title %}Profilim · Pilates Studio{% endblock %}
+{% block content %}
+<div class="max-w-2xl mx-auto mt-8">
+  <div class="rounded-2xl bg-white/80 p-6 shadow mb-8">
+    <h1 class="text-2xl font-bold mb-2">Profilim</h1>
+    {% if member %}
+      <div class="mb-2 text-stone-700"><b>Ad Soyad:</b> {{ member.full_name }}</div>
+      <div class="mb-2 text-stone-700"><b>Kalan Seans:</b> {{ member.credits }}</div>
+      <div class="mb-2 text-stone-700"><b>Kayıt Tarihi:</b> {{ member.created_at.strftime('%d.%m.%Y') if member.created_at else '-' }}</div>
+    {% else %}
+      <div class="text-stone-500">Üye bilgisi bulunamadı.</div>
+    {% endif %}
+  </div>
+
+  <div class="rounded-2xl bg-white/80 p-6 shadow">
+    <h2 class="text-lg font-semibold mb-3">Ölçümlerim</h2>
+    {% set items = measurements %}
+    {% set is_admin = session.get('is_admin', False) %}
+    {% include 'partials/_measurement_table.html' %}
+  </div>
+
+  <div class="rounded-2xl border border-white/50 bg-white/60 backdrop-blur p-4 mt-8">
+    <div class="mb-2 text-sm text-stone-500">Son 1 yılda ders katılımı</div>
+    <div class="overflow-x-auto">
+      <div class="heatmap-grid" style="display: grid; grid-auto-flow: column; grid-template-rows: repeat(7, 1fr); gap: 4px; justify-content: center; margin-bottom: 16px;">
+        {% for week in weeks %}
+          {% for day in week %}
+            {% set bg_class = 'bg-[#ff69b4]' if day.count and day.count > 0 else 'bg-[#e0e0e0]' %}
+            <span class="heatmap-day {{ bg_class }} w-[18px] h-[18px] inline-block rounded-md"></span>
+          {% endfor %}
+        {% endfor %}
+      </div>
+      <div class="heatmap-single-legend flex items-center justify-center mt-2 gap-2">
+        <span class="w-[16px] h-[16px] bg-[#ff69b4] inline-block rounded"></span>
+        <span class="text-[0.95em] text-stone-600">Katıldığın günler</span>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+

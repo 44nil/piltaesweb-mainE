@@ -1,0 +1,12 @@
+<form action="{{ url_for('add_measurement') }}" method="POST" class="space-y-3" id="addMeasurementForm">
+  {% if csrf_token %}<input type="hidden" name="csrf_token" value="{{ csrf_token() }}">{% endif %}
+  <input type="hidden" name="member_id" value="{{ member_id }}">
+  <div><label>Tarih</label><input name="date" type="date" required class="input"></div>
+  <div class="grid grid-cols-3 gap-3">
+    <input name="weight" type="number" step="0.1" placeholder="Kg" class="input">
+    <input name="waist" type="number" step="0.1" placeholder="Bel (cm)" class="input">
+    <input name="hip" type="number" step="0.1" placeholder="Kalça (cm)" class="input">
+    <input name="chest" type="number" step="0.1" placeholder="Göğüs (cm)" class="input">
+  </div>
+  <button type="submit" class="btn btn-primary">Kaydet</button>
+</form>

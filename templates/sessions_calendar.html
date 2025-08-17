@@ -1,0 +1,412 @@
+{% extends 'base.html' %}
+{% block title %}Haftalık Takvim · Pilates Studio{% endblock %}
+
+{% block content %}
+<div class="rounded-[22px] border border-white/55 bg-white/55 backdrop-blur-xl p-6 shadow-[0_20px_80px_-30px_rgba(0,0,0,.25)]">
+  <!-- Üst bar: hafta başlığı + navigasyon -->
+  <div class="flex items-center justify-between mb-4">
+    <div>
+      <h2 class="font-semibold text-lg">Haftalık Takvim</h2>
+      <div class="text-xs text-stone-500">{{ week_label }}</div>
+    </div>
+    <div class="flex items-center gap-2">
+      <a href="{{ url_for('sessions_calendar', d=prev_week) }}"
+         class="rounded-xl px-3 py-1 ring-1 ring-white/60 bg-white/70 shadow hover:shadow-md">← Önceki</a>
+      <a href="{{ url_for('sessions_calendar', d=next_week) }}"
+         class="rounded-xl px-3 py-1 ring-1 ring-white/60 bg-white/70 shadow hover:shadow-md">Sonraki →</a>
+    </div>
+  </div>
+
+  <!-- Legend -->
+  <div class="flex flex-wrap gap-3 text-xs mb-4">
+    <span class="inline-flex items-center gap-2">
+      <span class="w-3 h-3 rounded-full bg-gradient-to-r from-rose-300 to-violet-300 ring-1 ring-white/60"></span> Uygun
+    </span>
+    <span class="inline-flex items-center gap-2">
+      <span class="w-3 h-3 rounded-full bg-gray-300"></span> Dolu
+    </span>
+    <span class="inline-flex items-center gap-2">
+      <span class="w-3 h-3 rounded-full bg-emerald-300 ring-1 ring-white/60"></span> Katıldım
+    </span>
+    <span class="inline-flex items-center gap-2">
+      <span class="w-3 h-3 rounded-full bg-amber-300 ring-1 ring-white/60"></span> Özel Grup
+    </span>
+  </div>
+
+  <!-- Grid -->
+  <div id="calendarGridContainer" class="overflow-auto rounded-2xl bg-white/60 ring-1 ring-white/60 shadow-inner">
+    {% include '_calendar_grid.html' %}
+  </div>
+</div>
+{% endblock %}
+
+<!-- Admin: Seans Bilgi Modalı -->
+<div id="sessionInfoModal" class="fixed inset-0 z-50 hidden bg-black/30 backdrop-blur-sm items-center justify-center">
+  <div class="bg-white rounded-2xl p-5 w-full max-w-md relative">
+    <button class="absolute top-2 right-3 text-xl" data-close>&times;</button>
+    <div class="text-lg font-semibold mb-2" id="mTitle"></div>
+    <div class="text-sm mb-1">Kapasite: <span id="mCap"></span></div>
+    <div class="text-sm mb-1">Kalan: <span id="mRem"></span></div>
+    <div class="text-sm">Katılımcılar:</div>
+    <ul id="mParts" class="text-sm text-stone-600 list-disc pl-5 mt-1"></ul>
+  </div>
+</div>
+
+<!-- Admin: Seans Oluştur Modalı -->
+<div id="createModal" class="fixed inset-0 z-50 hidden bg-black/30 backdrop-blur-sm flex items-center justify-center">
+  <div class="bg-white/95 backdrop-blur-sm rounded-2xl p-5 w-full max-w-md relative">
+    <button class="absolute top-2 right-3 text-xl" data-close>&times;</button>
+    <div class="text-lg font-semibold mb-3">Yeni Seans Ekle</div>
+    
+    <form id="createForm" class="space-y-3" action="javascript:void(0)">
+      <label class="block">
+        <span class="mb-1 block text-sm text-stone-600">Tarih</span>
+        <input id="cDate" name="date" type="date" required
+               class="w-full rounded-2xl bg-white/80 ring-1 ring-white/60 shadow-inner px-4 py-3 outline-none focus:ring-rose-300">
+      </label>
+      
+      <label class="block">
+        <span class="mb-1 block text-sm text-stone-600">Saat</span>
+        <input id="cTime" name="time" type="time" required
+               class="w-full rounded-2xl bg-white/80 ring-1 ring-white/60 shadow-inner px-4 py-3 outline-none focus:ring-rose-300">
+      </label>
+
+      <label class="block">
+        <span class="mb-1 block text-sm text-stone-600">Kapasite</span>
+        <input id="cCap" name="capacity" type="number" min="1" value="4" placeholder="Maksimum katılımcı"
+               class="w-full rounded-2xl bg-white/80 ring-1 ring-white/60 shadow-inner px-4 py-3 outline-none focus:ring-rose-300">
+      </label>
+
+      <label class="block">
+        <span class="mb-1 block text-sm text-stone-600">Notlar (opsiyonel)</span>
+        <input id="cNotes" name="notes" type="text" placeholder="Örn. Reformer / Mat / Düzey"
+               class="w-full rounded-2xl bg-white/80 ring-1 ring-white/60 shadow-inner px-4 py-3 outline-none focus:ring-rose-300">
+      </label>
+
+      <!-- Sabit / Recurring + Rezerve Üyeler -->
+      <div class="mt-2 rounded-2xl bg-rose-50/70 ring-1 ring-rose-100 p-4">
+        <label class="flex items-center gap-3 cursor-pointer select-none">
+          <input type="checkbox" id="cRecurring" name="is_recurring" 
+                 class="h-5 w-5 rounded border-stone-300">
+          <div>
+            <div class="font-medium text-sm">Bu seansı sabit/recurring olarak rezerve et</div>
+            <div class="text-xs text-stone-500">Seçili üyeler için her hafta aynı gün/saat otomatik yer ayrılır.</div>
+          </div>
+        </label>
+
+        <div id="recurringOptions" class="hidden mt-4 space-y-3">
+          <label class="block">
+            <span class="mb-1 block text-sm text-stone-600">Üye Seç (opsiyonel)</span>
+            <select id="cMembers" name="reserved_member_ids[]" multiple
+                    class="w-full rounded-2xl bg-white/80 ring-1 ring-white/60 shadow-inner px-4 py-3 outline-none focus:ring-rose-300">
+              <option value="">Üye seçmeden oluştur</option>
+            </select>
+            <p class="text-[12px] text-stone-500 mt-1">Ctrl/⌘ ile çoklu seçim yapabilirsiniz.</p>
+          </label>
+
+          <label class="block">
+            <span class="mb-1 block text-sm text-stone-600">Tekrarlama Düzeni</span>
+            <select id="cRecurPattern" name="recur_pattern"
+                    class="w-full rounded-2xl bg-white/80 ring-1 ring-white/60 shadow-inner px-4 py-3 outline-none focus:ring-rose-300">
+              <option value="weekly" selected>Her Hafta (önerilen)</option>
+              <option value="biweekly">2 Haftada Bir</option>
+              <option value="monthly">Her Ay Aynı Gün</option>
+            </select>
+          </label>
+          
+          <label class="block">
+            <span class="mb-1 block text-sm text-stone-600">Kaç kez tekrarlanacak?</span>
+            <input id="cRecurCount" name="recur_count" type="number" min="2" max="52" value="8" 
+                   class="w-full rounded-2xl bg-white/80 ring-1 ring-white/60 shadow-inner px-4 py-3 outline-none focus:ring-rose-300">
+            <div class="flex gap-2 mt-2 text-xs">
+              <button type="button" onclick="setRecurCount(4)" class="px-2 py-0.5 rounded-full bg-white/80 ring-1 ring-stone-200">4</button>
+              <button type="button" onclick="setRecurCount(8)" class="px-2 py-0.5 rounded-full bg-white/80 ring-1 ring-stone-200">8</button>
+              <button type="button" onclick="setRecurCount(12)" class="px-2 py-0.5 rounded-full bg-white/80 ring-1 ring-stone-200">12</button>
+              <button type="button" onclick="setRecurCount(24)" class="px-2 py-0.5 rounded-full bg-white/80 ring-1 ring-stone-200">24</button>
+            </div>
+          </label>
+        </div>
+      </div>
+      
+      <button class="w-full rounded-2xl bg-gradient-to-r from-rose-300 to-violet-300 px-4 py-3 shadow-lg hover:shadow-xl transition mt-2" type="submit">
+        ➕ Ekle
+      </button>
+    </form>
+  </div>
+</div>
+
+{% block scripts %}
+<script>
+// Global modal değişkenleri
+const infoModal = document.getElementById('sessionInfoModal');
+const createModal = document.getElementById('createModal');
+
+// ADMIN: oluştur POST
+if (document.getElementById('cCreate')) {
+  document.getElementById('cCreate').addEventListener('click', async () => {
+    const d = document.getElementById('cDate').value;
+    const t = document.getElementById('cTime').value;
+    const cap = parseInt(document.getElementById('cCap').value || '4', 10);
+    const r = await fetch('/admin/sessions', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({ start_at: `${d}T${t}`, capacity: cap })
+    });
+    if (r.ok) location.reload(); else alert('Seans oluşturulamadı');
+  });
+}
+
+
+
+// Modal kapat
+if (document.querySelectorAll('[data-close]').length) {
+  document.querySelectorAll('[data-close]').forEach(b =>
+    b.addEventListener('click', () => b.closest('.fixed').classList.add('hidden'))
+  );
+}
+
+// Form submit → /admin/sessions POST
+async function refreshCalendarGrid() {
+  const gridContainer = document.getElementById('calendarGridContainer');
+  const gridDiv = document.getElementById('calendarGrid');
+  const weekStart = gridDiv?.dataset?.weekStart || '';
+  
+  try {
+    const res = await fetch(`/calendar/grid?week_start=${weekStart}`);
+    if (!res.ok) throw new Error(`HTTP hata: ${res.status}`);
+    
+    const html = await res.text();
+    gridContainer.innerHTML = html;
+    
+    // Event dinleyicilerini yeniden ekle
+    attachEventListeners();
+  } catch (err) {
+    console.error('Takvim yenilenirken hata:', err);
+  }
+}
+
+// Event dinleyicileri ekle
+function attachEventListeners() {
+  // Rezervasyon butonları
+  document.querySelectorAll('.reserve-btn').forEach(btn => {
+    btn.addEventListener('click', async (e) => {
+      e.preventDefault();
+      const sid = btn.form.action.split('session_id=')[1];
+      btn.disabled = true;
+      try {
+        const r = await fetch('/reservations', {
+          method: 'POST',
+          headers: {'Content-Type': 'application/json'},
+          body: JSON.stringify({session_id: Number(sid)})
+        });
+        const data = await r.json();
+        if (!r.ok) throw new Error(data.error || 'Hata');
+        btn.textContent = 'Rezerve Edildi';
+        btn.classList.add('bg-emerald-100','text-emerald-800');
+      } catch (e) {
+        alert('Rezervasyon başarısız: ' + e.message);
+        btn.disabled = false;
+      }
+    });
+  });
+
+  // Admin seans bilgi butonları
+  document.querySelectorAll('.admin-session-btn').forEach(card => {
+    card.addEventListener('click', async () => {
+      const sid = card.dataset.info;
+      const r = await fetch(`/api/session/${sid}`);
+      const d = await r.json();
+      document.getElementById('mTitle').textContent = new Date(d.start_at).toLocaleString('tr-TR');
+      document.getElementById('mCap').textContent = d.capacity;
+      document.getElementById('mRem').textContent = d.remaining;
+      const ul = document.getElementById('mParts'); ul.innerHTML = '';
+      d.participants.forEach(n => { const li = document.createElement('li'); li.textContent = n; ul.appendChild(li); });
+      infoModal.classList.remove('hidden'); infoModal.classList.add('flex');
+    });
+  });
+
+  // Boş slota tıklama
+  document.querySelectorAll('.empty-slot').forEach(el => {
+    el.addEventListener('click', () => {
+      // Formu temizle
+      resetCreateForm();
+      
+      // Gün ve saati ayarla
+      document.getElementById('cDate').value = el.dataset.day;
+      document.getElementById('cTime').value = el.dataset.time;
+      
+      const m = document.getElementById('createModal');
+      m.classList.remove('hidden'); 
+      m.classList.add('flex');
+    });
+  });
+}
+
+// Tekrarlı seans işlemleri
+document.addEventListener('DOMContentLoaded', function() {
+  const recurCheckbox = document.getElementById('cRecurring');
+  const recurOptions = document.getElementById('recurringOptions');
+  
+  if (recurCheckbox && recurOptions) {
+    recurCheckbox.addEventListener('change', function() {
+      if (this.checked) {
+        recurOptions.classList.remove('hidden');
+      } else {
+        recurOptions.classList.add('hidden');
+      }
+    });
+    
+    // Üyeleri yükle
+    fetchMembers();
+  }
+  
+  // Tüm event dinleyicilerini bağla
+  attachEventListeners();
+  
+  // Form temizle
+  resetCreateForm();
+});
+
+// Tekrar sayısını ayarla
+function setRecurCount(count) {
+  const recurCountInput = document.getElementById('cRecurCount');
+  if (recurCountInput) {
+    recurCountInput.value = count;
+  }
+}
+
+// Üyeleri getir
+async function fetchMembers() {
+  try {
+    const membersSelect = document.getElementById('cMembers');
+    if (!membersSelect) return;
+    
+    const res = await fetch('/api/members');
+    if (!res.ok) {
+      console.error('Üyeler yüklenemedi:', res.status);
+      return;
+    }
+    
+    const members = await res.json();
+    console.log('Üyeler yüklendi:', members);
+    
+    // İlk option'ı sakla
+    const firstOption = membersSelect.options[0];
+    membersSelect.innerHTML = '';
+    membersSelect.appendChild(firstOption);
+    
+    // Üyeleri ekle (kredileri de göster)
+    members.forEach(m => {
+      const option = document.createElement('option');
+      option.value = m.id;
+      option.textContent = `${m.full_name} (${m.credits || 0} hak)`;
+      membersSelect.appendChild(option);
+    });
+  } catch (e) {
+    console.error('Üyeler yüklenirken hata:', e);
+  }
+}
+
+// Form temizle
+function resetCreateForm() {
+  const form = document.getElementById('createForm');
+  if (form) {
+    form.reset();
+    
+    // Tarihi bugüne ayarla
+    const today = new Date().toISOString().split('T')[0];
+    const dateInput = document.getElementById('cDate');
+    if (dateInput) dateInput.value = today;
+    
+    // Tekrarlı seçeneğini gizle
+    const recurOptions = document.getElementById('recurringOptions');
+    if (recurOptions) recurOptions.classList.add('hidden');
+  }
+}
+
+if (document.getElementById('createForm')) {
+  document.getElementById('createForm').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    
+    try {
+      const d = document.getElementById('cDate').value;
+      const t = document.getElementById('cTime').value;
+      const cap = parseInt(document.getElementById('cCap').value || '4', 10);
+      const notes = document.getElementById('cNotes')?.value || '';
+      const isRecurring = document.getElementById('cRecurring').checked;
+      
+      let requestData = { 
+        start_at: `${d}T${t}`, 
+        capacity: cap,
+        notes: notes
+      };
+      
+      if (isRecurring) {
+        requestData.is_recurring = true;
+        requestData.recur_pattern = document.getElementById('cRecurPattern').value;
+        requestData.recur_count = parseInt(document.getElementById('cRecurCount').value || '8', 10);
+        
+        // Seçili üyeleri ekle
+        const membersSelect = document.getElementById('cMembers');
+        if (membersSelect) {
+          const selectedMembers = Array.from(membersSelect.selectedOptions)
+            .map(opt => opt.value)
+            .filter(v => v); // Boş değerleri filtrele
+            
+          if (selectedMembers.length > 0) {
+            requestData.reserved_member_ids = selectedMembers;
+          }
+        }
+      }
+      
+      const submitButton = e.target.querySelector('button[type="submit"]');
+      if (submitButton) {
+        submitButton.disabled = true;
+        submitButton.textContent = 'İşleniyor...';
+      }
+      
+      const res = await fetch('/admin/sessions', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-Requested-With': 'XMLHttpRequest'
+        },
+        body: JSON.stringify(requestData)
+      });
+      
+      const data = await res.json().catch(() => ({}));
+      
+      if (!res.ok || !data.ok) { 
+        alert(data.error || `HTTP ${res.status}`); 
+        if (submitButton) {
+          submitButton.disabled = false;
+          submitButton.innerHTML = '➕ Ekle';
+        }
+        return; 
+      }
+      
+      document.getElementById('createModal').classList.add('hidden');
+      await refreshCalendarGrid();
+      
+      // Başarı mesajı
+      const messageType = isRecurring ? 'tekrarlı' : '';
+      const messageCount = isRecurring ? `${requestData.recur_count}x ` : '';
+      alert(`${messageCount}${messageType} seans başarıyla eklendi!`);
+      
+    } catch (error) {
+      console.error('Seans oluşturma hatası:', error);
+      alert('Seans oluşturulamadı: ' + error.message);
+      
+      const submitButton = e.target.querySelector('button[type="submit"]');
+      if (submitButton) {
+        submitButton.disabled = false;
+        submitButton.innerHTML = '➕ Ekle';
+      }
+    }
+  });
+}
+
+// Modalları kapat
+[infoModal, createModal].forEach(m => m?.addEventListener('click', e => { if (e.target === m) m.classList.add('hidden'); }));
+</script>
+{% endblock %}

@@ -1,0 +1,83 @@
+{% extends 'base.html' %}
+{% block title %}Üye Ölçüm Listesi · Pilates Studio{% endblock %}
+{% block content %}
+<div class="max-w-2xl mx-auto mt-8 p-6 rounded-2xl bg-white/80 shadow">
+  <h2 class="text-2xl font-semibold mb-4">Üye Ölçüm Paneli</h2>
+  <form method="get" class="mb-6 flex flex-col md:flex-row gap-3 items-end">
+    <div class="flex-1">
+      <label class="block mb-2 text-sm font-medium">Üye Seç</label>
+      <select name="member_id" id="memberSelect" required class="w-full mt-1 p-2 border rounded-xl">
+        <option value="">-- Üye Seçin --</option>
+        {% for m in members %}
+          <option value="{{ m.id }}" {% if m.id == selected_id %}selected{% endif %}>{{ m.full_name }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    <button type="submit" class="bg-emerald-500 text-white px-4 py-2 rounded-xl shadow hover:shadow-md">Listele</button>
+    <a href="#" id="addMeasurementLink" class="bg-sky-200 text-sky-900 px-4 py-2 rounded-xl shadow hover:shadow-md">➕ Ölçüm Ekle</a>
+  </form>
+
+  {% if measurements %}
+  <div class="overflow-x-auto">
+    <table class="w-full text-sm border rounded-xl overflow-hidden">
+      <thead>
+        <tr class="bg-stone-100">
+          <th class="p-2">Tarih</th>
+          <th class="p-2">Kilo (kg)</th>
+          <th class="p-2">Bel (cm)</th>
+          <th class="p-2">Kalça (cm)</th>
+          <th class="p-2">Bacak (cm)</th>
+          <th class="p-2">Aksiyon</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for meas in measurements %}
+        <tr>
+          <td class="p-2">{{ meas.date.strftime('%d.%m.%Y') }}</td>
+          <td class="p-2">{{ meas.weight or '-' }}</td>
+          <td class="p-2">{{ meas.waist or '-' }}</td>
+          <td class="p-2">{{ meas.hip or '-' }}</td>
+          <td class="p-2">{{ meas.thigh or '-' }}</td>
+          <td class="p-2">
+            <form class="inline deleteMeasurementForm" action="{{ url_for('delete_measurement') }}" method="POST">
+              <input type="hidden" name="measurement_id" value="{{ meas.id }}">
+              <input type="hidden" name="member_id" value="{{ meas.member_id }}">
+              <button type="submit" class="px-2 py-1 rounded bg-rose-100 text-rose-700 hover:bg-rose-200">Sil</button>
+            </form>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% else %}
+  <div>Seçilen üyeye ait ölçüm bulunamadı.</div>
+  {% endif %}
+</div>
+{% set is_admin = True %}
+{% include 'partials/_measurement_table.html' %}
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+  const memberSelect = document.getElementById('memberSelect');
+  const addMeasurementLink = document.getElementById('addMeasurementLink');
+  
+  // Sayfa yüklendiğinde bağlantıyı güncelle
+  updateMeasurementLink();
+  
+  // Üye seçimi değiştiğinde bağlantıyı güncelle
+  memberSelect.addEventListener('change', updateMeasurementLink);
+  
+  function updateMeasurementLink() {
+    const selectedMemberId = memberSelect.value;
+    if (selectedMemberId) {
+      addMeasurementLink.href = "{{ url_for('add_measurement') }}?member_id=" + selectedMemberId;
+      addMeasurementLink.classList.remove('opacity-50', 'pointer-events-none');
+    } else {
+      addMeasurementLink.href = "#";
+      addMeasurementLink.classList.add('opacity-50', 'pointer-events-none');
+    }
+  }
+});
+</script>
+{% endblock %}

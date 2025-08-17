@@ -1,0 +1,66 @@
+{# _calendar_grid.html - Sadece grid alanı #}
+<div id="calendarGrid" data-week-start="{{ days[0].strftime('%Y-%m-%d') }}">
+  <div class="grid" style="grid-template-columns: 90px repeat(7, minmax(160px,1fr));">
+    <!-- Üst sol boş hücre -->
+    <div class="sticky top-0 z-10 bg-white/80 backdrop-blur-xl ring-1 ring-white/60"></div>
+    <!-- Gün başlıkları -->
+    {% for d in days %}
+      <div class="sticky top-0 z-10 bg-white/80 backdrop-blur-xl ring-1 ring-white/60 px-3 py-2 text-sm font-medium">
+        {{ d.strftime('%a') }}<br>
+        <span class="text-stone-500 text-xs">{{ d.strftime('%d.%m') }}</span>
+      </div>
+    {% endfor %}
+    <!-- Saat satırları -->
+    {% for t in slots %}
+      <div class="sticky left-0 bg-white/70 backdrop-blur-xl ring-1 ring-white/60 px-2 py-3 text-sm font-medium">
+        {{ t.strftime('%H:%M') }}
+      </div>
+      {% for d in days %}
+        {% set day_key = d.strftime('%Y-%m-%d') %}
+        {% set time_key = t.strftime('%H:%M') %}
+        {% set list_in_cell = by_cell.get((day_key, time_key), []) %}
+        <div class="border border-white/50 p-2 min-h-[72px]">
+          {% if list_in_cell|length > 0 %}
+            {% for s in list_in_cell %}
+              {% set left = s.spots_left|default(0) %}
+              <div class="rounded-xl p-2 shadow-lg mb-2 last:mb-0 relative
+                          {% if left == 0 %} bg-gray-200 text-gray-600 cursor-not-allowed
+                          {% elif s.user_joined %} bg-emerald-300/80 ring-1 ring-white/60
+                          {% elif s.is_reserved %} bg-amber-300/80 ring-1 ring-white/60
+                          {% else %} bg-gradient-to-r from-rose-300 to-violet-300
+                          {% endif %}">
+                <div class="text-xs font-semibold flex items-center justify-between">
+                  <span>{{ time_key }}</span>
+                  <span class="text-[11px] opacity-80">{{ s.capacity }} kap · {{ left }} kal</span>
+                </div>
+                {% if role == 'member' %}
+                  {% if left > 0 %}
+                    <form method="post" action="{{ url_for('reserve', session_id=s.id) }}">
+                      <button class="reserve-btn mt-1 w-full rounded-lg px-2 py-1 text-xs shadow transition
+                                     bg-black/10 hover:bg-black/20">
+                        Rezerve Et
+                      </button>
+                    </form>
+                  {% else %}
+                    <div class="mt-1 text-center text-xs text-gray-500">Dolu</div>
+                  {% endif %}
+                {% else %}
+                  <button class="absolute inset-0 admin-session-btn" data-info="{{ s.id }}" style="z-index:10; background:transparent;"></button>
+                {% endif %}
+              </div>
+            {% endfor %}
+          {% else %}
+            {% if role == 'admin' %}
+              <button class="h-12 rounded-xl border border-dashed border-stone-300/30 empty-slot"
+                      data-day="{{ d.isoformat() }}" data-time="{{ t.strftime('%H:%M') }}">
+                <span class="text-xs text-stone-400">+ Yeni Seans</span>
+              </button>
+            {% else %}
+              <div class="h-12 rounded-xl border border-transparent"></div>
+            {% endif %}
+          {% endif %}
+        </div>
+      {% endfor %}
+    {% endfor %}
+  </div>
+</div>

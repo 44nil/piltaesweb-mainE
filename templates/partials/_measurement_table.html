@@ -1,0 +1,41 @@
+{% if items %}
+<table class="w-full text-sm">
+  <thead>
+    <tr class="text-stone-500">
+      <th class="text-left py-2">Tarih</th>
+      <th class="text-left py-2">Kilo (kg)</th>
+      <th class="text-left py-2">Bel (cm)</th>
+      <th class="text-left py-2">Kalça (cm)</th>
+      <th class="text-left py-2">Göğüs (cm)</th>
+      {% if is_admin %}<th class="text-left py-2">Aksiyon</th>{% endif %}
+    </tr>
+  </thead>
+  <tbody>
+  {% for r in items %}
+    <tr class="border-t">
+      <td class="py-2">{{ r.date.strftime("%d.%m.%Y") }}</td>
+      <td>{{ r.weight or "-" }}</td>
+      <td>{{ r.waist or "-" }}</td>
+      <td>{{ r.hip or "-" }}</td>
+      <td>{{ r.chest or "-" }}</td>
+      {% if is_admin %}
+      <td>
+        <form class="inline deleteMeasurementForm"
+              action="{{ url_for('delete_measurement') }}"
+              method="POST">
+          <input type="hidden" name="measurement_id" value="{{ r.id }}">
+          <input type="hidden" name="member_id" value="{{ r.member_id }}">
+          <button type="submit"
+                  class="px-2 py-1 rounded-lg bg-rose-100 text-rose-700 hover:bg-rose-200">
+            Sil
+          </button>
+        </form>
+      </td>
+      {% endif %}
+    </tr>
+  {% endfor %}
+  </tbody>
+</table>
+{% else %}
+<div class="text-stone-500">Seçilen üyeye ait ölçüm bulunamadı.</div>
+{% endif %}
